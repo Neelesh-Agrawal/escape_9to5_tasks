@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/escape_9to5_tasks.html"
+    }
+  ]
+}

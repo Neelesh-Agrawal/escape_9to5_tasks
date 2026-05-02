@@ -1,0 +1,479 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0a0a0a;font-family:'Courier New',monospace;overflow:hidden;}
+#c{display:block;width:100%;height:520px;}
+#ui{position:absolute;top:0;left:0;width:100%;height:520px;pointer-events:none;}
+#hud{position:absolute;top:14px;left:16px;color:#fff;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;display:none;}
+#hud span{margin-right:18px;opacity:0.6;}
+#hud b{opacity:1;}
+#overlay{position:absolute;top:0;left:0;width:100%;height:520px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0a0a0a;pointer-events:all;}
+#overlay h1{font-size:26px;color:#fff;letter-spacing:0.2em;font-weight:400;margin-bottom:6px;}
+#overlay .sub{font-size:11px;color:#444;letter-spacing:0.2em;margin-bottom:36px;}
+#overlay .hint{font-size:10px;color:#333;letter-spacing:0.1em;margin-top:14px;line-height:2.2;text-align:center;}
+.obtn{padding:11px 30px;border:0.5px solid #444;background:transparent;color:#fff;font-family:'Courier New',monospace;font-size:12px;letter-spacing:0.18em;cursor:pointer;text-transform:uppercase;}
+.obtn:hover{background:#181818;}
+#deathscreen{position:absolute;top:0;left:0;width:100%;height:520px;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(10,10,10,0.97);pointer-events:all;}
+#deathscreen h2{font-size:13px;color:#ff3333;letter-spacing:0.3em;font-weight:400;margin-bottom:6px;text-transform:uppercase;}
+#deathscreen .reason{font-size:10px;color:#444;letter-spacing:0.15em;margin-bottom:2px;}
+#deathscreen .dscore{font-size:52px;color:#fff;font-weight:400;margin:14px 0 2px;}
+#deathscreen .dlbl{font-size:10px;color:#333;letter-spacing:0.2em;margin-bottom:28px;}
+
+/* TASK MODAL */
+#taskmodal{position:absolute;top:0;left:0;width:100%;height:520px;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(10,10,10,0.96);pointer-events:all;z-index:10;}
+#taskmodal.show{display:flex;}
+#taskbox{width:340px;border:0.5px solid #333;padding:28px 24px;background:#0f0f0f;}
+#task-header{font-size:9px;letter-spacing:0.25em;color:#ff3333;text-transform:uppercase;margin-bottom:4px;}
+#task-title{font-size:13px;color:#fff;letter-spacing:0.1em;margin-bottom:20px;line-height:1.6;}
+#task-timer-bar{width:100%;height:2px;background:#1a1a1a;margin-bottom:20px;}
+#task-timer-fill{height:100%;background:#ff3333;width:100%;transition:width linear;}
+#task-body{min-height:80px;}
+
+/* typing task */
+#type-prompt{font-size:11px;color:#555;margin-bottom:10px;letter-spacing:0.08em;line-height:1.8;}
+#type-prompt b{color:#888;}
+#type-input{width:100%;background:#000;border:0.5px solid #333;color:#fff;font-family:'Courier New',monospace;font-size:13px;padding:10px 12px;outline:none;letter-spacing:0.05em;}
+#type-input:focus{border-color:#555;}
+#type-input.correct{border-color:#00ff88;color:#00ff88;}
+#type-input.wrong{border-color:#ff3333;}
+
+/* math task */
+#math-eq{font-size:32px;color:#fff;text-align:center;margin-bottom:16px;letter-spacing:0.1em;}
+#math-input{width:120px;background:#000;border:0.5px solid #333;color:#fff;font-family:'Courier New',monospace;font-size:20px;padding:8px 12px;outline:none;text-align:center;display:block;margin:0 auto;}
+#math-input:focus{border-color:#555;}
+#math-submit{display:block;margin:14px auto 0;padding:8px 24px;border:0.5px solid #444;background:transparent;color:#fff;font-family:'Courier New',monospace;font-size:11px;letter-spacing:0.15em;cursor:pointer;text-transform:uppercase;}
+#math-submit:hover{background:#1a1a1a;}
+
+/* mcq task */
+#mcq-q{font-size:12px;color:#aaa;margin-bottom:16px;line-height:1.7;letter-spacing:0.05em;}
+#mcq-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.mcq-opt{padding:10px 12px;border:0.5px solid #2a2a2a;background:#000;color:#888;font-family:'Courier New',monospace;font-size:11px;letter-spacing:0.08em;cursor:pointer;text-align:left;text-transform:uppercase;}
+.mcq-opt:hover{border-color:#444;color:#fff;}
+.mcq-opt.correct{border-color:#00ff88;color:#00ff88;}
+.mcq-opt.wrong{border-color:#ff3333;color:#ff3333;}
+
+#task-result{font-size:11px;text-align:center;margin-top:14px;min-height:16px;letter-spacing:0.15em;text-transform:uppercase;}
+
+#mobile-btns{position:absolute;bottom:20px;left:0;width:100%;display:none;justify-content:space-between;padding:0 20px;pointer-events:all;}
+#mobile-btns button{width:68px;height:48px;border:0.5px solid #2a2a2a;background:rgba(255,255,255,0.04);color:#fff;font-size:13px;font-family:'Courier New',monospace;cursor:pointer;border-radius:3px;-webkit-tap-highlight-color:transparent;}
+#warnbanner{position:absolute;top:48px;left:50%;transform:translateX(-50%);font-size:9px;letter-spacing:0.22em;color:#ff3333;pointer-events:none;text-transform:uppercase;opacity:0;transition:opacity 0.3s;}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ui">
+  <div id="hud">
+    <span>floor <b id="hfloor">1</b></span>
+    <span>survived <b id="htime">0s</b></span>
+    <span>lives <b id="hlives">3</b></span>
+  </div>
+  <div id="warnbanner">⚠ boss incoming</div>
+
+  <div id="overlay">
+    <h1>ESCAPE 9–5</h1>
+    <div class="sub">the office never ends</div>
+    <button class="obtn" onclick="startGame()">clock in →</button>
+    <div class="hint">
+      ← → move &nbsp;·&nbsp; space / ↑ jump &nbsp;·&nbsp; double jump works<br>
+      hit by email or boss → complete a work task or get fired<br>
+      3 lives · reach EXIT to advance floors
+    </div>
+  </div>
+
+  <div id="taskmodal">
+    <div id="taskbox">
+      <div id="task-header">⚠ performance review</div>
+      <div id="task-title"></div>
+      <div id="task-timer-bar"><div id="task-timer-fill"></div></div>
+      <div id="task-body"></div>
+      <div id="task-result"></div>
+    </div>
+  </div>
+
+  <div id="deathscreen">
+    <h2>you're fired</h2>
+    <div class="reason" id="dreason"></div>
+    <div class="dscore" id="dscore">0</div>
+    <div class="dlbl">seconds survived</div>
+    <button class="obtn" onclick="startGame()" style="margin-top:4px;">clock back in →</button>
+  </div>
+
+  <div id="mobile-btns">
+    <button id="bleft">◀</button>
+    <button id="bjump">JMP</button>
+    <button id="bright">▶</button>
+  </div>
+</div>
+
+<script>
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
+function resize(){canvas.width=canvas.offsetWidth;canvas.height=canvas.offsetHeight;}
+resize(); window.addEventListener('resize',resize);
+if(window.innerWidth<600) document.getElementById('mobile-btns').style.display='flex';
+const W=()=>canvas.width, H=()=>canvas.height;
+const GRAVITY=0.52,JUMP=-13,SPEED=4;
+
+let state='idle',player,platforms,bosses,emails,coffees,particles;
+let camX=0,score=0,startTime,lives,floor,spawnTimer,diffTimer,bossCD;
+let keys={},looping=false;
+let taskActive=false,taskTimer=0,taskDuration=0,taskType='',taskAnswer=null,taskDone=false;
+let deathPending=false,deathReason='';
+
+// ── TASK SYSTEM ──────────────────────────────────────────
+const TYPING_PHRASES=[
+  'the meeting could have been an email',
+  'please circle back by end of day',
+  'synergise the cross functional pipeline',
+  'action items from the last standup',
+  'per my last email please advise',
+  'we need to touch base offline'
+];
+const MATH_QS=[
+  {q:'37 + 48',a:85},{q:'124 - 67',a:57},{q:'9 × 8',a:72},{q:'144 ÷ 12',a:12},
+  {q:'56 + 79',a:135},{q:'200 - 83',a:117},{q:'7 × 13',a:91},{q:'196 ÷ 14',a:14},
+  {q:'63 + 58',a:121},{q:'17 × 6',a:102}
+];
+const MCQ_QS=[
+  {q:'Your boss asks for a report "ASAP". You should:',opts:['Panic and do nothing','Send it half done','Do it properly and send','Reply "on it!" and forget'],a:2},
+  {q:'A client emails you at 11pm. You should:',opts:['Reply immediately','Reply next morning','Ignore forever','Forward to HR'],a:1},
+  {q:'The standup is in 2 minutes. You:',opts:['Skip it','Join late eating breakfast','Join on time prepared','Reschedule the standup'],a:2},
+  {q:'You made a mistake in a report. You:',opts:['Blame the intern','Quietly fix and say nothing','Own it and correct it','Delete the report'],a:2},
+  {q:'Your deadline is tomorrow. You are 80% done. You:',opts:['Ask for extension','Finish it tonight','Submit 80% and hope','Call in sick'],a:0},
+  {q:'Someone steals your idea in a meeting. You:',opts:['Cry in the bathroom','Confront them loudly','Calmly clarify it was yours','Let it go forever'],a:2}
+];
+
+function triggerTask(reason){
+  if(taskActive) return;
+  taskActive=true; taskDone=false; taskType=''; taskAnswer=null;
+  deathPending=true; deathReason=reason;
+  const modal=document.getElementById('taskmodal');
+  modal.classList.add('show');
+  document.getElementById('task-result').textContent='';
+
+  const types=['type','math','mcq'];
+  taskType=types[Math.floor(Math.random()*3)];
+  const body=document.getElementById('task-body');
+  body.innerHTML='';
+
+  if(taskType==='type'){
+    taskDuration=12000;
+    const phrase=TYPING_PHRASES[Math.floor(Math.random()*TYPING_PHRASES.length)];
+    taskAnswer=phrase;
+    document.getElementById('task-title').textContent='Type the phrase exactly — before time runs out';
+    body.innerHTML=`<div id="type-prompt">type: <b>"${phrase}"</b></div><input id="type-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="start typing..." />`;
+    const inp=document.getElementById('type-input');
+    setTimeout(()=>inp.focus(),100);
+    inp.addEventListener('input',()=>{
+      const val=inp.value;
+      if(val===phrase){inp.classList.add('correct');resolveTask(true);}
+      else if(phrase.startsWith(val)){inp.classList.remove('wrong');}
+      else inp.classList.add('wrong');
+    });
+  } else if(taskType==='math'){
+    taskDuration=9000;
+    const q=MATH_QS[Math.floor(Math.random()*MATH_QS.length)];
+    taskAnswer=q.a;
+    document.getElementById('task-title').textContent='Solve it fast — your job depends on it';
+    body.innerHTML=`<div id="math-eq">${q.q} = ?</div><input id="math-input" type="number" inputmode="numeric" placeholder="?" /><button id="math-submit" onclick="checkMath()">submit →</button>`;
+    setTimeout(()=>document.getElementById('math-input').focus(),100);
+    document.getElementById('math-input').addEventListener('keydown',e=>{if(e.key==='Enter') checkMath();});
+  } else {
+    taskDuration=14000;
+    const q=MCQ_QS[Math.floor(Math.random()*MCQ_QS.length)];
+    taskAnswer=q.a;
+    document.getElementById('task-title').textContent='What do you do? Choose wisely.';
+    let opts='';
+    q.opts.forEach((o,i)=>{opts+=`<button class="mcq-opt" onclick="checkMCQ(${i},this)">${String.fromCharCode(65+i)}. ${o}</button>`;});
+    body.innerHTML=`<div id="mcq-q">${q.q}</div><div id="mcq-opts">${opts}</div>`;
+  }
+
+  // start timer bar
+  const fill=document.getElementById('task-timer-fill');
+  fill.style.transition='none'; fill.style.width='100%';
+  requestAnimationFrame(()=>{
+    fill.style.transition=`width ${taskDuration}ms linear`;
+    fill.style.width='0%';
+  });
+  taskTimer=setTimeout(()=>resolveTask(false),taskDuration);
+}
+
+function checkMath(){
+  if(taskDone) return;
+  const val=parseInt(document.getElementById('math-input').value);
+  resolveTask(val===taskAnswer);
+}
+
+function checkMCQ(idx,btn){
+  if(taskDone) return;
+  const opts=document.querySelectorAll('.mcq-opt');
+  opts.forEach(o=>o.style.pointerEvents='none');
+  if(idx===taskAnswer){btn.classList.add('correct'); resolveTask(true);}
+  else{btn.classList.add('wrong'); opts[taskAnswer].classList.add('correct'); resolveTask(false);}
+}
+
+function resolveTask(passed){
+  if(taskDone) return;
+  taskDone=true;
+  clearTimeout(taskTimer);
+  const fill=document.getElementById('task-timer-fill');
+  fill.style.transition='none';
+  const res=document.getElementById('task-result');
+  if(passed){
+    res.style.color='#00ff88'; res.textContent='✓ saved. back to work.';
+    if(taskType==='type'){const inp=document.getElementById('type-input');if(inp)inp.disabled=true;}
+    setTimeout(()=>{
+      document.getElementById('taskmodal').classList.remove('show');
+      taskActive=false; deathPending=false;
+      player.invincible=180; // 3s invincibility after passing
+    },1000);
+  } else {
+    res.style.color='#ff3333'; res.textContent='✗ fired.';
+    setTimeout(()=>{
+      document.getElementById('taskmodal').classList.remove('show');
+      taskActive=false;
+      die(deathReason);
+    },900);
+  }
+}
+
+// ── GAME ─────────────────────────────────────────────────
+function startGame(){
+  document.getElementById('overlay').style.display='none';
+  document.getElementById('deathscreen').style.display='none';
+  document.getElementById('hud').style.display='block';
+  state='playing'; init();
+  if(!looping){looping=true;loop();}
+}
+
+function init(){
+  floor=1;camX=0;score=0;startTime=Date.now();
+  lives=3;spawnTimer=0;diffTimer=0;bossCD=320;
+  particles=[];taskActive=false;deathPending=false;
+  player={x:100,y:280,vx:0,vy:0,w:18,h:26,onGround:false,jumps:0,invincible:0};
+  platforms=makePlatforms(); bosses=[];emails=[];coffees=[];
+  spawnCoffee();spawnCoffee();
+  document.getElementById('hlives').textContent=lives;
+}
+
+function makePlatforms(){
+  const ps=[],gY=H()-40;
+  let gx=0;
+  while(gx<2800){const len=250+Math.random()*160;ps.push({x:gx,y:gY,w:len,h:10,type:'ground'});gx+=len+40+Math.random()*40;}
+  for(let i=0;i<20;i++) ps.push({x:280+i*120+Math.random()*40,y:gY-85-Math.random()*110,w:85+Math.random()*50,h:8,type:'float'});
+  return ps;
+}
+
+function spawnBoss(){
+  if(bosses.length>0) return;
+  const gY=H()-40;
+  bosses.push({x:player.x+W()+100+Math.random()*80,y:gY-38,w:22,h:38,vx:-(0.8+floor*0.08),label:['BOSS','HR','CEO','CFO'][floor%4],frame:0});
+  const wb=document.getElementById('warnbanner');
+  wb.style.opacity=1; setTimeout(()=>wb.style.opacity=0,1800);
+}
+
+function spawnEmail(){
+  const gY=H()-40,heights=[gY-28,gY-80,gY-140];
+  const ht=heights[Math.floor(Math.random()*heights.length)];
+  emails.push({x:player.x+W()+60+Math.random()*100,y:ht,w:30,h:18,vx:-(1.6+Math.random()*1+floor*0.1),label:['RE:RE:RE:','URGENT','FYI','Action req','per my last','Pls advise'][Math.floor(Math.random()*6)]});
+}
+
+function spawnCoffee(){
+  const gY=H()-40;
+  coffees.push({x:player.x+180+Math.random()*320,y:gY-50-Math.random()*60,w:18,h:18});
+}
+
+const exitDoor={x:2200,y:0,w:36,h:60};
+
+function loop(){
+  requestAnimationFrame(loop);
+  if(state!=='playing'||taskActive) return;
+  update(); draw();
+}
+
+function update(){
+  score=Math.floor((Date.now()-startTime)/1000);
+  diffTimer++; spawnTimer++; bossCD--;
+  if(diffTimer%700===0) floor++;
+  if(bossCD<=0){spawnBoss();bossCD=Math.max(420,700-floor*18);}
+  const er=Math.max(120,270-floor*14);
+  if(spawnTimer%er===0) spawnEmail();
+  if(spawnTimer%220===0) spawnCoffee();
+
+  if(keys['ArrowLeft']||keys['a']||keys['KeyA']) player.vx=-SPEED;
+  else if(keys['ArrowRight']||keys['d']||keys['KeyD']) player.vx=SPEED;
+  else player.vx*=0.65;
+
+  player.vy+=GRAVITY; player.x+=player.vx; player.y+=player.vy;
+  player.onGround=false;
+  if(player.invincible>0) player.invincible--;
+
+  for(const p of platforms){
+    if(player.x+player.w>p.x&&player.x<p.x+p.w&&player.y+player.h>p.y&&player.y+player.h<p.y+p.h+14&&player.vy>=0){
+      player.y=p.y-player.h;player.vy=0;player.onGround=true;player.jumps=0;
+    }
+  }
+
+  if(player.y>H()+80){die('fell into the basement');return;}
+  camX=Math.max(0,player.x-W()*0.32);
+  exitDoor.y=H()-80;
+
+  for(let i=bosses.length-1;i>=0;i--){
+    const b=bosses[i];
+    b.x+=b.vx; b.frame++;
+    if(b.x+b.w<camX-60){bosses.splice(i,1);continue;}
+    if(player.invincible===0&&overlap(player,b)){
+      player.invincible=60;
+      triggerTask('caught by '+b.label);
+      return;
+    }
+  }
+
+  for(let i=emails.length-1;i>=0;i--){
+    const em=emails[i];
+    em.x+=em.vx;
+    if(em.x+em.w<camX-60){emails.splice(i,1);continue;}
+    if(player.invincible===0&&overlap(player,em)){
+      player.invincible=60;
+      triggerTask('"'+em.label+'" hit your inbox');
+      emails.splice(i,1);
+      return;
+    }
+  }
+
+  for(let i=coffees.length-1;i>=0;i--){
+    const c=coffees[i];
+    if(overlap(player,c)){spawnParticles(c.x,c.y,'#ff6b35',8);coffees.splice(i,1);}
+    else if(c.x<camX-60) coffees.splice(i,1);
+  }
+
+  if(overlap(player,exitDoor)){
+    floor++;platforms=makePlatforms();bosses=[];emails=[];coffees=[];
+    exitDoor.x=2200+floor*150;
+    player.x=100;player.y=280;player.vx=0;player.vy=0;camX=0;bossCD=280;
+    spawnParticles(player.x,player.y,'#00ff88',14);
+    spawnCoffee();spawnCoffee();
+  }
+
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];p.x+=p.vx;p.y+=p.vy;p.vy+=0.18;p.life--;
+    if(p.life<=0) particles.splice(i,1);
+  }
+
+  document.getElementById('hfloor').textContent=floor;
+  document.getElementById('htime').textContent=score+'s';
+  document.getElementById('hlives').textContent=lives;
+}
+
+function overlap(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;}
+
+function die(reason){
+  state='dead';
+  document.getElementById('dreason').textContent=reason;
+  document.getElementById('dscore').textContent=score;
+  document.getElementById('deathscreen').style.display='flex';
+  document.getElementById('hud').style.display='none';
+}
+
+function spawnParticles(x,y,color,n){
+  for(let i=0;i<n;i++) particles.push({x,y,vx:(Math.random()-0.5)*5,vy:Math.random()*-4-1,life:35+Math.random()*15,color,size:2+Math.random()*3});
+}
+
+function draw(){
+  ctx.fillStyle='#0a0a0a';ctx.fillRect(0,0,W(),H());
+  ctx.save();ctx.translate(-camX,0);
+
+  ctx.strokeStyle='#111';ctx.lineWidth=0.5;
+  for(let x=0;x<3400;x+=80){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H());ctx.stroke();}
+  for(let y=0;y<H();y+=60){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(3400,y);ctx.stroke();}
+
+  for(const p of platforms){
+    ctx.fillStyle=p.type==='ground'?'#1c1c1c':'#181818';
+    ctx.fillRect(p.x,p.y,p.w,p.h);
+    ctx.strokeStyle='#2a2a2a';ctx.lineWidth=0.5;ctx.strokeRect(p.x,p.y,p.w,p.h);
+    if(p.type==='ground'){ctx.fillStyle='#222';for(let tx=p.x;tx<p.x+p.w;tx+=20)ctx.fillRect(tx,p.y,10,2);}
+  }
+
+  const ed=exitDoor;
+  ctx.fillStyle='#001a0d';ctx.fillRect(ed.x,ed.y,ed.w,ed.h);
+  ctx.strokeStyle='#00ff88';ctx.lineWidth=1;ctx.strokeRect(ed.x,ed.y,ed.w,ed.h);
+  ctx.fillStyle='#00ff88';ctx.font='bold 8px Courier New';ctx.textAlign='center';
+  ctx.fillText('EXIT',ed.x+ed.w/2,ed.y+ed.h/2+3);
+  ctx.beginPath();ctx.arc(ed.x+ed.w/2,ed.y-10,3+Math.sin(Date.now()/200)*2,0,Math.PI*2);
+  ctx.globalAlpha=0.7;ctx.fill();ctx.globalAlpha=1;
+
+  for(const c of coffees){
+    ctx.fillStyle='#1a0800';ctx.strokeStyle='#ff6b35';ctx.lineWidth=0.5;
+    ctx.fillRect(c.x,c.y,c.w,c.h);ctx.strokeRect(c.x,c.y,c.w,c.h);
+    ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('☕',c.x+c.w/2,c.y+c.h/2+4);
+  }
+
+  for(const em of emails){
+    ctx.fillStyle='#1a1600';ctx.strokeStyle='#ffcc00';ctx.lineWidth=0.5;
+    ctx.fillRect(em.x,em.y,em.w,em.h);ctx.strokeRect(em.x,em.y,em.w,em.h);
+    ctx.strokeStyle='#ffcc0055';ctx.beginPath();
+    ctx.moveTo(em.x,em.y);ctx.lineTo(em.x+em.w/2,em.y+em.h*0.6);ctx.lineTo(em.x+em.w,em.y);ctx.stroke();
+    ctx.fillStyle='#ffcc00';ctx.font='6px Courier New';ctx.textAlign='center';
+    ctx.fillText(em.label,em.x+em.w/2,em.y-4);
+  }
+
+  for(const b of bosses){
+    const bx=b.x,by=b.y;
+    ctx.fillStyle='#1a0000';ctx.fillRect(bx,by,b.w,b.h);
+    ctx.fillStyle='#330000';ctx.fillRect(bx+3,by+12,b.w-6,b.h-12);
+    ctx.fillStyle='#ff3333';ctx.fillRect(bx+3,by,b.w-6,14);
+    ctx.fillStyle='#fff';ctx.fillRect(bx+5,by+3,4,4);ctx.fillRect(bx+13,by+3,4,4);
+    ctx.fillStyle='#000';ctx.fillRect(bx+6,by+4,2,2);ctx.fillRect(bx+14,by+4,2,2);
+    ctx.fillStyle='#ff3333';ctx.font='bold 7px Courier New';ctx.textAlign='center';
+    ctx.fillText(b.label,bx+b.w/2,by-5);
+    const leg=Math.sin(b.frame*0.15)*4;
+    ctx.fillStyle='#220000';ctx.fillRect(bx+3,by+b.h,5,6+leg);ctx.fillRect(bx+b.w-8,by+b.h,5,6-leg);
+  }
+
+  if(state==='playing'){
+    const px=player.x,py=player.y,pw=player.w,ph=player.h;
+    ctx.globalAlpha=player.invincible>0?(Math.sin(Date.now()/80)>0?0.3:0.9):1;
+    ctx.fillStyle='#fff';ctx.fillRect(px,py+8,pw,ph-8);
+    ctx.fillStyle='#e8e8e8';ctx.fillRect(px+3,py,pw-6,12);
+    ctx.fillStyle='#aaaaff';ctx.fillRect(px+7,py+10,4,ph-14);
+    ctx.fillStyle='#0a0a0a';ctx.fillRect(px+5,py+3,3,3);ctx.fillRect(px+10,py+3,3,3);
+    const ll=player.onGround?Math.sin(Date.now()/100)*3:0;
+    ctx.fillStyle='#ccc';ctx.fillRect(px+2,py+ph,5,6+ll);ctx.fillRect(px+pw-7,py+ph,5,6-ll);
+    ctx.globalAlpha=1;
+  }
+
+  for(const p of particles){
+    ctx.globalAlpha=p.life/50;ctx.fillStyle=p.color;
+    ctx.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size);ctx.globalAlpha=1;
+  }
+
+  ctx.restore();
+  ctx.fillStyle='#111';ctx.fillRect(0,H()-18,W(),18);
+  ctx.fillStyle='#444';ctx.font='9px Courier New';ctx.textAlign='left';
+  ctx.fillText('floor '+floor+' · hit = work task · pass to survive · reach EXIT',12,H()-5);
+}
+
+window.addEventListener('keydown',e=>{
+  keys[e.code]=true;
+  if((e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW')&&state==='playing'&&!taskActive){
+    e.preventDefault();
+    if(player.onGround||player.jumps<1){player.vy=JUMP;player.onGround=false;player.jumps++;}
+  }
+});
+window.addEventListener('keyup',e=>{keys[e.code]=false;});
+
+const bl=document.getElementById('bleft'),br=document.getElementById('bright'),bj=document.getElementById('bjump');
+bl.addEventListener('touchstart',e=>{e.preventDefault();keys['ArrowLeft']=true;});
+bl.addEventListener('touchend',e=>{e.preventDefault();keys['ArrowLeft']=false;});
+br.addEventListener('touchstart',e=>{e.preventDefault();keys['ArrowRight']=true;});
+br.addEventListener('touchend',e=>{e.preventDefault();keys['ArrowRight']=false;});
+bj.addEventListener('touchstart',e=>{
+  e.preventDefault();
+  if(state==='playing'&&!taskActive&&(player.onGround||player.jumps<1)){player.vy=JUMP;player.onGround=false;player.jumps++;}
+});
+</script>
+</body>
+</html>
