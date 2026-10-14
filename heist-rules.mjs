@@ -1,5 +1,7 @@
-export const FINISH_DISTANCE=1200;
-export const JOBS=[
+ // Endless runner: no stations and no finish line.
+export const FINISH_DISTANCE=Infinity;
+export const JOBS=[];
+export const LEGACY_JOBS=[
  {distance:240,lane:-1,hold:.45,title:'Take the access card',area:'Reception',action:'Take access card'},
  {distance:610,lane:1,hold:1.6,title:'Copy the backup drive',area:'Server room',action:'Copy backup drive'},
  {distance:1010,lane:0,hold:.8,title:'Restore elevator power',area:'Service corridor',action:'Restore power'}
