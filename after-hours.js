@@ -1,4 +1,4 @@
-import {Heist,JOBS,FINISH_DISTANCE} from './heist-rules.mjs?v=heist-2';
+import {Heist,JOBS,FINISH_DISTANCE} from './heist-rules.mjs?v=floors-1';
 import * as T from './vendor/three.module.js';
 import {Meta} from './meta.js?v=1';
 const PERKS=[
@@ -14,7 +14,7 @@ const PERKS=[
 const meta=new Meta({id:'after-hours',accent:'#ffc16a',xpPerScore:.03,
  missions:[{id:'run800',text:'Run 800 m',stat:'distance',goal:800},{id:'run1600',text:'Run 1,600 m',stat:'distance',goal:1600,xp:250},{id:'files30',text:'Grab 30 files in one run',stat:'files',goal:30},{id:'files120',text:'Grab 120 files today',stat:'files',goal:120,scope:'day'},{id:'dodge20',text:'20-dodge streak',stat:'streak',goal:20},{id:'coffee3',text:'Drink 3 coffees today',stat:'coffee',goal:3,scope:'day'},{id:'score',text:'Score 6,000 in one run',stat:'score',goal:6000},{id:'perks3',text:'Take 3 upgrades in one run',stat:'perks',goal:3}],
  skins:[{id:'slate',name:'Slate suit',color:'#345260',level:1},{id:'olive',name:'Olive',color:'#5d6b2f',level:2},{id:'wine',name:'Wine',color:'#7d2c3b',level:3},{id:'cream',name:'Linen',color:'#d9cba8',level:5},{id:'teal',name:'Teal',color:'#1f8a7a',level:7},{id:'neon',name:'Neon',color:'#ff4fd8',level:10}]});
-let up={},jumps=0,streak=0,nextPerk=400,zone=0;const mult=()=>1+.4*(up.bonus||0);
+let up={},jumps=0,streak=0,zone=0;const mult=()=>1+.4*(up.bonus||0);
 import { Reflector } from './vendor/Reflector.js';
 const $=id=>document.getElementById(id);let graphicsLost=false;let r;try{r=new T.WebGLRenderer({canvas:$('scene'),antialias:true});}catch(e){document.body.insertAdjacentHTML('beforeend','<div class="fatal"><h2>This office needs WebGL</h2><p>Enable browser hardware acceleration, then reload.</p></div>');throw e;}r.shadowMap.enabled=true;r.shadowMap.type=T.PCFSoftShadowMap;r.toneMapping=T.ACESFilmicToneMapping;r.toneMappingExposure=1.05;
 const scene=new T.Scene();scene.background=new T.Color(0x6b7d84);scene.fog=new T.FogExp2(0x6b7d84,.008);const camera=new T.PerspectiveCamera(54,1,.1,180);const hemi=new T.HemisphereLight(0xffddb0,0x384652,2.3);scene.add(hemi);const sun=new T.DirectionalLight(0xffc68a,4);sun.position.set(-15,25,-30);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);Object.assign(sun.shadow.camera,{left:-24,right:24,top:35,bottom:-25,far:100});sun.shadow.bias=-.001;scene.add(sun);
@@ -82,28 +82,33 @@ const checkpointMeshes=JOBS.map((job,i)=>{
  }
  scene.add(group);return {group,prop,token,bar,gate,marker,beacon};
 });
-const elevatorPanels=[door.children[1],door.children[2]];
+const elevatorPanels=[door.children[1],door.children[2]];door.children[0].scale.set(8,.3,.3);door.children[0].position.y=4.15;
+for(const side of [-1,1]){box(door,side*5,3,-2,3.7,6,.6,'wall');box(door,side*3,2,-3.4,.18,4,3,'dark');box(door,side*2.85,1.1,-3.5,.06,.08,2.5,'amber',false);}
+box(door,0,5.25,-2,6.5,1.5,.6,'wall');box(door,0,4,-3.4,6,.15,3,'cream');box(door,0,0,-3.4,6,.08,3,'dark');const liftBack=box(door,0,2,-4.8,6,4,.15,'wood');
+const street=new T.Group();door.add(street);box(street,0,-.01,-10,28,.1,15,'wall');box(street,0,.02,-5.8,20,.08,3.5,'cream');box(street,0,.05,-7.5,20,.1,.2,'dark');for(const side of [-1,1]){box(street,side*5,2,-6,.12,4,.12,'dark');box(street,side*5,4,-6,.8,.15,.8,'amber',false);plant(street,side*3.6,-5.5);}for(let i=-3;i<=3;i++)box(street,i*3,.08,-11,1.6,.02,.12,'cream',false);street.visible=false;
+
 const coffeeShield=new T.Mesh(new T.TorusGeometry(.75,.025,6,36),new T.MeshBasicMaterial({color:0x91edcf,transparent:true,opacity:.65}));coffeeShield.rotation.x=Math.PI/2;coffeeShield.position.y=.15;player.add(coffeeShield);
 const caseTokens=[box(player,.7,.78,.16,.025,.2,.13,'teal',false),box(player,.7,.78,-.1,.025,.13,.18,'amber',false)];
 let kick=0,tierShown=0;const heist=new Heist(),objects=[],particles=[],reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 let state='menu',returnState='menu',time=0,score=0,lives=3,lane=0,x=0,y=0,vy=0,slide=0,invul=0,shield=false,spawn=0,row=0,files=0,combo=0,hitStop=0,quality=!reduced,sound=(()=>{try{return localStorage.getItem('after-hours-sound')!=='off'}catch{return true}})(),audio,noticeEnd=0,held=false,prev=performance.now(),hudClock=0,elapsed=0,ending=0;
-const STORAGE='after-hours-heist-v2';
+const STORAGE='after-hours-floors-v1';
 function beep(f=500,d=.15,end=f,type='triangle',vol=.08,delay=0){if(!sound)return;try{audio??=new (window.AudioContext||window.webkitAudioContext)();audio.resume();const t=audio.currentTime+delay,o=audio.createOscillator(),g=audio.createGain();o.type=type;o.connect(g);g.connect(audio.destination);o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(Math.max(30,end),t+d);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.008);g.gain.exponentialRampToValueAtTime(.0008,t+d);o.onended=()=>{o.disconnect();g.disconnect();};o.start(t);o.stop(t+d+.02);}catch{}}
 function thud(len=.14,vol=.12,freq=500){if(!sound)return;try{audio??=new (window.AudioContext||window.webkitAudioContext)();const t=audio.currentTime,b=audio.createBuffer(1,Math.floor(audio.sampleRate*len),audio.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(1-i/d.length)**2;const n=audio.createBufferSource(),f=audio.createBiquadFilter(),g=audio.createGain();n.buffer=b;f.type='lowpass';f.frequency.value=freq;g.gain.value=vol;n.connect(f);f.connect(g);g.connect(audio.destination);n.start(t);}catch{}}
 const sfx={start(){[523,659,784].forEach((f,i)=>beep(f,.14,f,'square',.04,i*.08));},jump(){beep(300,.16,620,'square',.035);},slide(){thud(.2,.08,1400);},file(){beep(988,.07,988,'square',.035);beep(1319,.12,1319,'square',.035,.06);},coffee(){[659,784,988].forEach((f,i)=>beep(f,.12,f,'triangle',.06,i*.06));},hit(){thud(.25,.22,380);beep(180,.3,60,'sawtooth',.06);},block(){beep(700,.1,500,'triangle',.06);thud(.1,.08,900);},dodge(){beep(1200,.05,1500,'sine',.025);},over(){[392,330,262,196].forEach((f,i)=>beep(f,.3,f*.97,'triangle',.07,i*.16));},speed(){beep(440,.12,880,'square',.035);}};
 function notice(text,ms=1400){$('notice').textContent=text;noticeEnd=performance.now()+ms;}
 function burst(px,py,pz,mat,n=12){if(!quality||reduced)return;for(let i=0;i<n;i++)particles.push({mesh:box(scene,px,py,pz,.07,.07,.07,mat,false),v:new T.Vector3((Math.random()-.5)*7,Math.random()*5,(Math.random()-.5)*7),life:.7});}
 function panels(){
- for(const [id,visible] of Object.entries({menu:state==='menu',settings:state==='pause',result:state==='result',hud:state==='play'}))$(id).classList[visible?'remove':'add']('hidden');
+ for(const [id,visible] of Object.entries({menu:state==='menu',settings:state==='pause',result:state==='result',hud:['play','boarding','descending'].includes(state)}))$(id).classList[visible?'remove':'add']('hidden');
  document.body.className=state==='play'?'playing':state==='pause'?'paused':'';$('meta-menu').hidden=state!=='menu';
- $('resume').classList[returnState==='play'?'remove':'add']('hidden');
+ $('resume').classList[['play','boarding','descending'].includes(returnState)?'remove':'add']('hidden');
+ $('lift-action').classList[state==='play'&&heist.stopped?'remove':'add']('hidden');$('lift-status').classList[['boarding','descending'].includes(state)?'remove':'add']('hidden');$('pause').classList[state==='upgrade'?'add':'remove']('hidden');
 }
 function refreshBest(){try{const best=Number(localStorage.getItem(STORAGE)||0);$('best').textContent=best?`Best ${best.toLocaleString()}`:'';}catch{}}
 function clearObjects(){for(const o of objects)scene.remove(o.g);objects.length=0;for(const p of particles)scene.remove(p.mesh);particles.length=0;}
-function start(){if(graphicsLost)return;up={};jumps=streak=zone=0;nextPerk=400;theme=THEMES[0];perkHud();meta.startRun();clearObjects();heist.reset();time=score=files=combo=hitStop=row=lane=x=y=vy=slide=invul=ending=kick=tierShown=0;lives=3;shield=0;spawn=1.5;held=false;state='play';door.visible=false;chunks.forEach((g,i)=>g.position.z=-i*12);checkpointMeshes.forEach(c=>{c.token.visible=true;c.token.rotation.z=.6;});panels();updateHUD();$('scene').focus({preventScroll:true});prev=performance.now();sfx.start();notice(matchMedia('(pointer: coarse)').matches?'Swipe to dodge · tap to jump':'A/D lanes · Space jump · S slide',2600);}
+function start(){if(graphicsLost)return;up={};jumps=streak=zone=0;theme=THEMES[0];perkHud();meta.startRun();clearObjects();heist.reset();time=score=files=combo=hitStop=row=lane=x=y=vy=slide=invul=ending=kick=tierShown=0;lives=3;shield=0;spawn=1.5;held=false;state='play';door.visible=false;city.position.y=0;liftClock=0;setFloorSign();chunks.forEach((g,i)=>g.position.z=-i*12);checkpointMeshes.forEach(c=>{c.token.visible=true;c.token.rotation.z=.6;});panels();updateHUD();$('scene').focus({preventScroll:true});prev=performance.now();sfx.start();notice(matchMedia('(pointer: coarse)').matches?'Swipe to dodge · tap to jump':'A/D lanes · Space jump · S slide',2600);}
 function home(){if(graphicsLost)return;held=false;state='menu';clearObjects();heist.reset();x=y=lane=slide=0;door.visible=false;panels();refreshBest();$('start').focus();}
-function finish(){state='result';meta.track('score',Math.floor(score),'max');const summary=meta.endRun(score);meta.renderResult($('meta-result'),summary);meta.renderMenu($('meta-menu'));held=false;panels();let best=0;try{best=Number(localStorage.getItem(STORAGE)||0);if(score>best)localStorage.setItem(STORAGE,String(Math.floor(score)));}catch{}$('result-title').innerHTML=score>best&&best?'NEW<br><span>BEST.</span>':'BACK TO<br><span>WORK.</span>';$('result-copy').textContent=`${Math.floor(score).toLocaleString()} points`;$('result-stats').textContent=`${Math.floor(heist.distance)} m · ${files} files${best&&score<=best?` · best ${best.toLocaleString()}`:''}`;sfx.over();refreshBest();$('replay').focus();}
-function pause(){if(graphicsLost)return;if(state==='pause'){state=returnState;held=false;panels();prev=performance.now();if(state==='play')$('scene').focus({preventScroll:true});else $('pause').focus();}else if(state==='play'||state==='menu'||state==='result'){returnState=state;state='pause';held=false;panels();$('close-settings').focus();}}
+function finish(){state='result';meta.track('score',Math.floor(score),'max');const summary=meta.endRun(score);meta.renderResult($('meta-result'),summary);meta.renderMenu($('meta-menu'));held=false;panels();let best=0;try{best=Number(localStorage.getItem(STORAGE)||0);if(score>best)localStorage.setItem(STORAGE,String(Math.floor(score)));}catch{}$('result-title').innerHTML=heist.finished?'OUT OF<br><span>OFFICE.</span>':score>best&&best?'NEW<br><span>BEST.</span>':'BACK TO<br><span>WORK.</span>';$('result-copy').textContent=`${Math.floor(score).toLocaleString()} points`;$('result-stats').textContent=`${heist.finished?'All five floors cleared':heist.floor.label+' reached'} · ${files} files${best&&score<=best?` · best ${best.toLocaleString()}`:''}`;sfx.over();refreshBest();$('replay').focus();}
+function pause(){if(graphicsLost)return;if(state==='pause'){state=returnState;held=false;panels();prev=performance.now();if(state==='play')$('scene').focus({preventScroll:true});else $('pause').focus();}else if(['play','boarding','descending','menu','result'].includes(state)){returnState=state;state='pause';held=false;panels();$('close-settings').focus();}}
 function action(a){if(state!=='play')return;if(a==='left')lane=Math.max(-1,lane-1);if(a==='right')lane=Math.min(1,lane+1);if(a==='left'||a==='right')beep(520,.05,620,'sine',.02);if(a==='jump'&&(y===0||(up.double&&jumps<2))){if(y===0)jumps=0;jumps++;vy=jumps>1?8:8.8;slide=0;sfx.jump();if(jumps>1)burst(x,y+.4,0,'teal',10);}if(a==='slide'){if(y>0)vy=-14;slide=.85;sfx.slide();}}
 function obstacle(type,l,z){
  const g=new T.Group();g.position.set(l*3,0,z);
@@ -119,7 +124,7 @@ function obstacle(type,l,z){
 // mix gets denser the further you run.
 function pattern(){
  if(row===0){for(let k=0;k<4;k++)obstacle('file',0,-24-k*2.2);row++;return;}
- const z=-75,level=Math.min(1,heist.distance/2500),safe=Math.floor(Math.random()*3)-1,hard=['block','cart'],soft=['jump','slide'];
+ const z=-75,level=heist.completed/4,safe=Math.floor(Math.random()*3)-1,hard=['block','cart'],soft=['jump','slide'];
  for(let l=-1;l<=1;l++){
   if(l===safe){if(Math.random()<.2+level*.35)obstacle(soft[Math.random()*2|0],l,z);continue;}
   const roll=Math.random();
@@ -130,43 +135,60 @@ function pattern(){
  for(let k=0;k<3+(Math.random()*3|0);k++)obstacle('file',trail,z-6-k*2.2);
  if(Math.random()<(up.barista?.32:.14)&&!shield)obstacle('coffee',safe,z-16);row++;
 }
-// Every 400 m: a new floor (with its own light) and an upgrade card choice.
+// A floor is a complete run; only the enclosed lift offers an upgrade.
 const THEMES=[{name:'Sunset floor',lo:0xf27d3d,hi:0x1c3a57,fog:0x6b7d84,sun:0xffc68a,hemi:0xffddb0},{name:'Dusk floor',lo:0xd0507a,hi:0x1d1840,fog:0x4a3f5e,sun:0xff9ab0,hemi:0xd9b8ff},{name:'Night shift',lo:0x274a8a,hi:0x050914,fog:0x182338,sun:0x8fb4ff,hemi:0x9fc4ff},{name:'Neon floor',lo:0xff2fa8,hi:0x140a2e,fog:0x2a1440,sun:0x5af0ff,hemi:0xff7ae0},{name:'Server farm',lo:0x2fe08a,hi:0x041611,fog:0x0f2a22,sun:0x7dffc4,hemi:0x9dffd8}];
 let theme=THEMES[0];const tc=new T.Color();
 function applyTheme(dt){const k=1-Math.exp(-dt*1.2);sky.material.uniforms.lo.value.lerp(tc.set(theme.lo),k);sky.material.uniforms.hi.value.lerp(tc.set(theme.hi),k);scene.background.lerp(tc.set(theme.fog),k);scene.fog.color.copy(scene.background);sun.color.lerp(tc.set(theme.sun),k);hemi.color.lerp(tc.set(theme.hemi),k);sunDisc.material.color.lerp(tc.set(theme.sun),k);}
-function offerPerk(){zone++;theme=THEMES[zone%THEMES.length];const options=Meta.draw(PERKS,up,3);if(!options.length){notice(theme.name);return;}state='upgrade';held=false;sfx.speed();meta.pick(options,{title:`${zone*400} m · ${theme.name}`,subtitle:'Pick an upgrade · 1 2 3'}).then(u=>{if(state!=='upgrade')return;up[u.id]=(up[u.id]||0)+1;meta.track('perks');if(u.id==='heart')lives++;state='play';prev=performance.now();invul=Math.max(invul,1);panels();perkHud();notice(u.name);sfx.coffee();burst(x,1.5,0,'teal',24);});}
+let liftClock=0;
+const floorSigns=['LIFT / 4','LIFT / 3','LIFT / 2','LIFT / 1','STREET EXIT'].map(t=>label(t));
+function setFloorSign(){door.children[3].material=floorSigns[heist.completed];liftBack.visible=!heist.lastFloor;street.visible=heist.lastFloor;}
+function enterLift(){if(state!=='play'||!heist.enter(x,y===0&&slide===0))return;state='boarding';lane=0;held=false;liftClock=0;clearObjects();$('lift-status').textContent=heist.lastFloor?'Leaving the office…':'Entering the lift…';panels();beep(660,.18,880);}
+function beginDescent(){state='descending';liftClock=0;prev=performance.now();$('lift-status').textContent=`Going down · ${heist.completed===3?'Ground floor':'Floor '+(3-heist.completed)}`;panels();}
+function offerPerk(){
+ if(heist.phase!=='upgrade'||state==='upgrade')return;
+ const options=Meta.draw(PERKS,up,3);state='upgrade';held=false;panels();
+ if(!options.length){beginDescent();return;}
+ meta.pick(options,{title:`${heist.floor.label} cleared`,subtitle:'Choose a power-up for the floors below · 1 2 3'}).then(u=>{
+  if(state!=='upgrade'||graphicsLost)return;up[u.id]=(up[u.id]||0)+1;meta.track('perks');if(u.id==='heart')lives++;perkHud();sfx.coffee();beginDescent();
+ });
+}
+function nextFloor(){heist.descend();zone=heist.completed;theme=THEMES[zone];row=0;spawn=1.5;x=y=vy=slide=lane=0;invul=1.5;liftClock=0;city.position.y=zone*12;chunks.forEach((g,i)=>g.position.z=-i*12);setFloorSign();state='play';panels();updateHUD();$('scene').focus({preventScroll:true});sfx.start();}
 function perkHud(){$('perks').innerHTML=Object.entries(up).map(([id,n])=>{const p=PERKS.find(p=>p.id===id);return`<span title="${p.name}">${p.icon}${n>1?`<sub>${n}</sub>`:''}</span>`;}).join('');}
 const streakMult=()=>streak>=30?3:streak>=15?2:streak>=6?1.5:1;
 function dodged(){streak++;meta.track('streak',streak,'max');if([6,15,30].includes(streak)){notice(`Dodge streak ×${streakMult()}`);sfx.coffee();kick=.2;}if(document.body.dataset)document.body.dataset.streak=streak>=30?3:streak>=15?2:streak>=6?1:0;}
 function updateHUD(){
- $('score').textContent=Math.floor(score).toLocaleString();$('lives').textContent='\u2665'.repeat(Math.max(0,lives))+(shield?' \u2615':'');$('distance').textContent=`${Math.floor(heist.distance)} m`;$('mult').textContent=streakMult()>1?`×${streakMult()}`:'';
+ $('score').textContent=Math.floor(score).toLocaleString();$('lives').textContent='\u2665'.repeat(Math.max(0,lives))+(shield?' \u2615':'');$('distance').textContent=`${heist.floor.label} · ${Math.ceil(heist.remaining)} m to ${heist.lastFloor?'street exit':'lift'}`;$('mult').textContent=streakMult()>1?`×${streakMult()}`:'';
+ $('floor-progress').style.width=`${Math.min(100,(heist.distance-heist.floorStart)/heist.floor.length*100)}%`;
+ $('lift-action').classList[state==='play'&&heist.stopped?'remove':'add']('hidden');$('enter-lift').disabled=Math.abs(x)>.65||y>0||slide>0;$('enter-lift').textContent=heist.lastFloor?'Leave office':'Enter lift';$('lift-hint').textContent=Math.abs(x)>.65?'Move to the middle lane':y>0||slide>0?'Stand up to enter':'Press E or tap below';
  if(performance.now()>noticeEnd)$('notice').textContent='';
 }
 function resize(){if(graphicsLost)return;r.setPixelRatio(Math.min(devicePixelRatio,quality?1.5:1));r.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.fov=innerWidth<650?72:54;camera.updateProjectionMatrix();}
-$('start').onclick=start;$('replay').onclick=start;$('result-home').onclick=home;$('home').onclick=home;$('pause').onclick=pause;$('close-settings').onclick=pause;$('resume').onclick=pause;
+$('enter-lift').onclick=enterLift;$('start').onclick=start;$('replay').onclick=start;$('result-home').onclick=home;$('home').onclick=home;$('pause').onclick=pause;$('close-settings').onclick=pause;$('resume').onclick=pause;
 const syncSound=()=>{$('sound').textContent=sound?'On':'Off';$('sound').setAttribute('aria-checked',String(sound));};syncSound();$('sound').onclick=()=>{sound=!sound;try{localStorage.setItem('after-hours-sound',sound?'on':'off')}catch{}syncSound();beep(620,.2,850);};
 $('quality').onclick=()=>{quality=!quality;floorMirror.visible=quality;r.shadowMap.enabled=quality;$('quality').textContent=quality?'On':'Off';$('quality').setAttribute('aria-checked',String(quality));resize();};$('quality').setAttribute('aria-checked',String(quality));$('quality').textContent=quality?'On':'Off';floorMirror.visible=quality;
 addEventListener('keydown',e=>{
  if(e.code==='Escape'||e.code==='KeyP'){e.preventDefault();if(!e.repeat)pause();return;}
  if(e.code==='Tab'&&state==='pause'){const pane=$('settings'),buttons=[...pane.querySelectorAll('button')].filter(b=>b.getClientRects().length);if(e.shiftKey&&document.activeElement===buttons[0]){e.preventDefault();buttons.at(-1).focus();}else if(!e.shiftKey&&document.activeElement===buttons.at(-1)){e.preventDefault();buttons[0].focus();}return;}
- if(state!=='play')return;if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space','KeyE'].includes(e.code))e.preventDefault();if(e.code==='KeyE')held=true;if(e.repeat)return;
+ if(state!=='play')return;if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space','KeyE'].includes(e.code))e.preventDefault();if(e.code==='KeyE'){enterLift();return;}if(e.repeat)return;
  action(({ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',Space:'jump',ArrowUp:'jump',KeyW:'jump',ArrowDown:'slide',KeyS:'slide'})[e.code]);
 });addEventListener('keyup',e=>{if(e.code==='KeyE')held=false;});for(const b of document.querySelectorAll('[data-action]'))b.onpointerdown=e=>{e.preventDefault();action(b.dataset.action);};
 const canvas=$('scene');let touch;
 canvas.onpointerdown=e=>{if(state!=='play')return;touch={x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);};canvas.onpointerup=e=>{if(!touch)return;const dx=e.clientX-touch.x,dy=e.clientY-touch.y;if(Math.max(Math.abs(dx),Math.abs(dy))>20)action(Math.abs(dx)>Math.abs(dy)?dx>0?'right':'left':dy>0?'slide':'jump');else action('jump');touch=null;};canvas.onpointercancel=()=>touch=null;
 canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();graphicsLost=true;state='lost';held=false;r.setAnimationLoop(null);panels();document.body.insertAdjacentHTML('beforeend','<section class="fatal" role="alert"><h2>The graphics took a break.</h2><p>Reload to start a fresh escape.</p><button id="recover-graphics" class="primary">Reload game</button></section>');$('recover-graphics').onclick=()=>location.reload();$('recover-graphics').focus();});
-addEventListener('resize',resize);document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='play')pause();});addEventListener('blur',()=>{held=false;if(state==='play')pause();});
+addEventListener('resize',resize);document.addEventListener('visibilitychange',()=>{if(document.hidden&&['play','boarding','descending'].includes(state))pause();});addEventListener('blur',()=>{held=false;if(['play','boarding','descending'].includes(state))pause();});
 resize();panels();refreshBest();meta.renderMenu($('meta-menu'));
 r.setAnimationLoop(now=>{
  if(graphicsLost)return;const rawDt=Math.max(0,Math.min(.04,(now-prev)/1000));prev=now;const playing=state==='play';hitStop=Math.max(0,hitStop-rawDt);const dt=playing?rawDt*(hitStop>0?.2:1):0;
  elapsed+=state==='pause'?0:rawDt;const t=reduced?0:elapsed;
- let travelled=0,speed=Math.min(30,15+heist.distance*.006)*(1-.08*(up.calm||0));
+ let travelled=0,speed=heist.floor.speed*(1-.08*(up.calm||0));
+ if(state==='boarding'){liftClock+=rawDt;x=T.MathUtils.damp(x,0,8,rawDt);if(liftClock>=2.2){heist.completeFloor();if(heist.finished)finish();else offerPerk();}}
+ else if(state==='descending'){liftClock+=rawDt;city.position.y=(heist.completed+Math.min(1,liftClock/1.8))*12;if(liftClock>=1.8)nextFloor();}
  if(playing){
-  time+=dt;travelled=heist.travel(dt,speed);score+=travelled*.8*mult()*streakMult();meta.track('distance',Math.floor(heist.distance),'max');if(heist.distance>=nextPerk){nextPerk+=400;offerPerk();}
+  time+=dt;travelled=heist.travel(dt,speed);score+=travelled*.8*mult()*streakMult();meta.track('distance',Math.floor(heist.distance),'max');
   x=T.MathUtils.damp(x,lane*3,16,dt);vy-=22*dt;y=Math.max(0,y+vy*dt);if(y===0)vy=0;slide=Math.max(0,slide-dt);invul=Math.max(0,invul-dt);
   if(heist.interact(dt,held,x,y===0&&slide===0)){score+=750;held=false;beep(500,.3,1000);burst(x,1.7,-5,'teal',20);}
-  const clearAhead=heist.job?heist.job.distance-heist.distance>105:FINISH_DISTANCE-heist.distance>100;
-  if(!heist.stopped){spawn-=dt;if(spawn<=0&&clearAhead){pattern();spawn=Math.max(1,2-heist.distance*.0004)*(16/speed)+.55;}}
+  const clearAhead=heist.remaining>115;
+  if(!heist.stopped){spawn-=dt;if(spawn<=0&&clearAhead){pattern();spawn=Math.max(.85,1.9-heist.completed*.2)*(17/speed)+.5;}}
   for(const g of chunks){g.position.z+=travelled;if(g.position.z>14)g.position.z-=120;}
   for(let i=objects.length-1;i>=0;i--){
    const o=objects[i],before=o.g.position.z;o.g.position.z+=travelled;
@@ -193,14 +215,18 @@ r.setAnimationLoop(now=>{
   c.gate.forEach((panel,k)=>panel.position.x=T.MathUtils.damp(panel.position.x,(k===0?-1:1)*(complete?5.5:2.3),5,rawDt));
   if(c.bar)c.bar.scale.x=Math.max(.001,complete?1:heist.completed===i?heist.progress:0);
  });
- const remaining=FINISH_DISTANCE-heist.distance;door.visible=heist.completed===3&&remaining<95;door.position.z=-remaining;
- elevatorPanels.forEach((panel,i)=>panel.position.x=(i===0?-1:1)*(remaining<28?2.9:1.5));
- player.position.set(x,y,heist.finished?-ending*4:0);player.scale.y=slide>0?.48:1;const idle=state==='menu'||state==='result';player.rotation.y=idle?Math.PI:0;player.rotation.z=playing?(lane*3-x)*-.07:0;
+ const inLift=['boarding','upgrade','descending'].includes(state)||(state==='pause'&&['boarding','descending'].includes(returnState));
+ const remaining=inLift?5:heist.remaining;door.visible=state!=='menu'&&state!=='result'&&remaining<110;door.position.z=-remaining;
+ const boarding=state==='boarding'||(state==='pause'&&returnState==='boarding');
+ const opening=inLift?(heist.lastFloor?1:boarding?Math.max(0,1-(liftClock-1.2)/.8):0):(remaining<28?1:0);
+ elevatorPanels.forEach((panel,i)=>panel.position.x=(i===0?-1:1)*(1.5+opening*1.4));
+ for(const chunk of chunks)chunk.visible=!(heist.lastFloor&&door.visible&&chunk.position.z<door.position.z-3);
+ player.position.set(x,y,inLift?(boarding?-Math.min(1,liftClock/1.2)*8:-8):0);player.scale.y=slide>0?.48:1;const idle=state==='menu'||state==='result';player.rotation.y=idle?Math.PI:0;player.rotation.z=playing?(lane*3-x)*-.07:0;
  coffeeShield.visible=shield;caseTokens.forEach((token,i)=>token.visible=heist.completed>i);
  player.visible=!(invul>0&&Math.floor(time*12)%2===0);
- for(let i=0;i<2;i++){const moving=playing&&travelled>0&&y===0;legs[i].rotation.x=moving?Math.sin(time*14+i*Math.PI)*.65:0;arms[i].rotation.x=moving?Math.sin(time*14+i*Math.PI)*-.55:0;}
+ for(let i=0;i<2;i++){const moving=(playing&&travelled>0&&y===0)||(boarding&&liftClock<1.2);legs[i].rotation.x=moving?Math.sin((boarding?liftClock:time)*14+i*Math.PI)*.65:0;arms[i].rotation.x=moving?Math.sin((boarding?liftClock:time)*14+i*Math.PI)*-.55:0;}
  for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.life-=dt;p.v.y-=dt*8;p.mesh.position.addScaledVector(p.v,dt);p.mesh.rotation.x+=dt*4;if(p.life<=0){scene.remove(p.mesh);particles.splice(i,1);}}
  applyTheme(rawDt);const portrait=camera.aspect<1;kick=Math.max(0,kick-rawDt*2.5);const sh=reduced?0:kick*kick*.35;camera.position.lerp(new T.Vector3(idle?7+(reduced?0:Math.sin(t*.12)):x*.18,idle?4.1:4.5,idle?11:portrait?13:9.5),1-Math.exp(-rawDt*4));camera.lookAt((idle?-1:x*.25)+(Math.random()-.5)*sh,(idle?1.2:1.5)+(Math.random()-.5)*sh,idle?-5:-13);if(playing){const f=54+Math.min(10,(speed-15)*.6);camera.fov+=((innerWidth<650?72:f)-camera.fov)*.05;camera.updateProjectionMatrix();}
  r.render(scene,camera);
 });
-window.__afterHours={meta,offerPerk,get up(){return up},get state(){return state},get stats(){return{time,score,lives,objects:objects.length,lane,files,combo,distance:heist.distance,completed:heist.completed,stopped:heist.stopped}},start,action,pause};
+window.__afterHours={meta,offerPerk,get up(){return up},get state(){return state},get stats(){return{time,score,lives,objects:objects.length,lane,files,combo,distance:heist.distance,completed:heist.completed,floor:heist.floor.label,remaining:heist.remaining,finished:heist.finished,stopped:heist.stopped}},start,action,pause,enterLift};

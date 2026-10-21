@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import {Heist,JOBS,FINISH_DISTANCE} from './heist-rules.mjs';
+import {Heist,JOBS,FINISH_DISTANCE,FLOORS} from './heist-rules.mjs';
 import {Meta} from './meta.js';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
@@ -12,7 +12,17 @@ const game=boot(new URL('./after-hours.js',import.meta.url),'__afterHours');game
 game.api.start();for(let i=0;i<10;i++)game.api.action('right');assert.equal(game.api.stats.lane,1);
 game.api.action('jump');game.advance(.2);assert(game.eval('y')>0);game.advance(1);assert.equal(game.eval('y'),0);
 game.api.pause();const frozen=game.api.stats.time;game.advance(2);assert.equal(game.api.stats.time,frozen);game.api.pause();
-game.eval('invul=10000');game.advance(120);assert.equal(game.api.state,'play','No timer or finish line ends the run');assert(game.api.stats.distance>1500,'Endless run keeps going');assert(game.api.stats.objects<60,'Objects stay bounded');
+game.eval('invul=10000');game.advance(30);assert.equal(game.api.state,'play');assert.equal(game.eval('Object.keys(up).length'),0,'No mid-floor upgrade at 400 m');
+game.advance(100);assert.equal(game.api.state,'play');assert.equal(game.api.stats.distance,895,'First floor stops at physical lift');assert(game.api.stats.stopped);assert(game.api.stats.objects<60);
+game.api.enterLift();assert.equal(game.api.state,'play','Wrong lane cannot enter lift');
+game.api.action('left');game.advance(.5);game.api.enterLift();assert.equal(game.api.state,'boarding');game.advance(.6);game.api.pause();const liftTime=game.eval('liftClock');game.advance(2);assert.equal(game.eval('liftClock'),liftTime,'Lift boarding pauses');game.api.pause();game.advance(4);assert.equal(game.api.state,'play');assert.equal(game.api.stats.floor,'Floor 3');assert.equal(game.api.stats.completed,1);assert.equal(game.eval('Object.keys(up).length'),1,'One upgrade after the floor');assert.equal(game.eval('city.position.y'),12,'City rises as the lift descends');
+// Complete remaining floors through their lift; the ground floor exits rather than upgrading.
+for(let floor=1;floor<FLOORS.length;floor++){
+ game.eval('heist.distance=heist.floorEnd-5;x=lane=y=slide=0;invul=10000');game.api.enterLift();assert.equal(game.api.state,'boarding');game.advance(4.5);
+ if(floor<FLOORS.length-1){assert.equal(game.api.state,'play');assert.equal(game.api.stats.completed,floor+1);}
+}
+assert.equal(game.api.state,'result');assert(game.api.stats.finished);assert.equal(game.api.stats.distance,FINISH_DISTANCE);assert.equal(game.eval('Object.values(up).reduce((n,v)=>n+v,0)'),4,'Exactly four lift rewards across five floors');
+game.api.start();
 game.eval('invul=0;lives=1;shield=0;up={}');game.eval("clearObjects();obstacle('block',lane,-.4)");game.advance(.016);assert.equal(game.api.state,'result','Losing the last life ends the run');
 game.api.start();assert.equal(game.api.stats.distance,0);assert.equal(game.api.stats.completed,0);assert.equal(game.api.stats.objects,0);assert.equal(game.api.stats.lives,3);
 game.eval("obstacle('file',0,-.4)");game.advance(.016);assert.equal(game.api.stats.files,1);
@@ -28,5 +38,6 @@ for(const [w,h] of [[390,844],[1440,900]]){
  for(const side of [-1,1]){game.eval(`lane=${side}`);game.advance(1);const p=game.eval('camera.updateMatrixWorld();new T.Vector3(x,y+1,0).project(camera)');assert(Math.abs(p.x)<.9&&Math.abs(p.y)<.9,'Runner visible in both outer lanes');}
 }
 game.api.start();game.advance(2);const before=JSON.stringify(game.api.stats);let prevented=false;game.events.get('scene:webglcontextlost')({preventDefault(){prevented=true}});game.advance(3);game.api.start();game.api.pause();assert(prevented);assert.equal(game.api.state,'lost');assert.equal(JSON.stringify(game.api.stats),before);
-const run=new Heist();run.travel(1000,100);assert(!run.stopped&&!run.finished,'No stations or finish line');assert.equal(run.distance,100000);
-console.log('After Hours endless: lanes, jump, pause, no timer or finish, bounded objects, death, replay, fair random rows, pickups, coffee shield, framing and context loss pass.');
+const run=new Heist();run.travel(1000,100);assert(run.stopped&&!run.finished);assert.equal(run.distance,FLOORS[0].length-5);assert(!run.enter(3,true));assert(!run.enter(0,false));assert(run.enter(0,true));assert(!run.descend(),'Cannot descend before boarding completes');run.completeFloor();assert.equal(run.phase,'upgrade');assert(run.descend());assert.equal(run.floor.label,'Floor 3');assert(run.floor.speed>FLOORS[0].speed);assert(!run.descend(),'Cannot skip a floor');
+assert(FLOORS.every((f,i)=>i===0||f.speed>FLOORS[i-1].speed),'Each new floor raises the difficulty');
+console.log('After Hours: five floors, physical lift entry, one reward per completed floor, descent, final escape, pause, replay, collision, bounded hazards, fair rows, mobile framing and context loss pass.');

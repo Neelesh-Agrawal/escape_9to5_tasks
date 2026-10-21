@@ -12,3 +12,9 @@ body.hurt:after{content:'';position:fixed;inset:0;pointer-events:none;animation:
 body[data-streak="2"] #mult,body[data-streak="3"] #mult{color:#fff;animation:mult .4s ease-in-out infinite alternate}@keyframes mult{to{transform:scale(1.15)}}
 body.playing[data-streak="3"]:before{content:'';position:fixed;inset:0;pointer-events:none;z-index:3;background:radial-gradient(ellipse at center,transparent 55%,#ffc16a33 100%);animation:mult .35s ease-in-out infinite alternate}
 body.playing #meta-menu,body.paused #meta-menu{display:none}
+
+/* Floors end at a physical lift; upgrades stay inside that break. */
+.floor-track{width:180px;max-width:48vw;height:3px;background:#c9d8d438;margin-top:7px;overflow:hidden}.floor-track i{display:block;height:100%;background:var(--mint);width:0}.lift-status{position:fixed;bottom:12vh;left:50%;transform:translateX(-50%);background:#152731ed;color:#fff1dc;padding:12px 22px;border-radius:6px;font-size:17px;text-align:center;max-width:90vw}.interaction{z-index:6}.run-stats #distance{font-size:14px}.interaction .primary:disabled{opacity:.7}
+
+/* Upgrade choices explain effects between levels; keep the playfield free of icon badges. */
+#perks{display:none!important}

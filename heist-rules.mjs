@@ -1,25 +1,27 @@
- // Endless runner: no stations and no finish line.
-export const FINISH_DISTANCE=Infinity;
-export const JOBS=[];
-export const LEGACY_JOBS=[
- {distance:240,lane:-1,hold:.45,title:'Take the access card',area:'Reception',action:'Take access card'},
- {distance:610,lane:1,hold:1.6,title:'Copy the backup drive',area:'Server room',action:'Copy backup drive'},
- {distance:1010,lane:0,hold:.8,title:'Restore elevator power',area:'Service corridor',action:'Restore power'}
+export const FLOORS=[
+ {name:'Executive floor',label:'Floor 4',length:900,speed:17},
+ {name:'Engineering',label:'Floor 3',length:950,speed:20},
+ {name:'Records',label:'Floor 2',length:1000,speed:23},
+ {name:'Reception',label:'Floor 1',length:1050,speed:26},
+ {name:'Ground floor',label:'Ground',length:1100,speed:29}
 ];
+export const FINISH_DISTANCE=FLOORS.reduce((sum,f)=>sum+f.length,0);
+// Kept as an empty export for the old station geometry; progression now belongs to floors.
+export const JOBS=[];
 export class Heist {
  constructor(){this.reset();}
- reset(){this.distance=0;this.completed=0;this.progress=0;}
- get job(){return JOBS[this.completed];}
- get stopped(){return !!this.job&&this.distance>=this.job.distance-5-.001;}
- get finished(){return this.completed===JOBS.length&&this.distance>=FINISH_DISTANCE;}
- travel(dt,speed){const before=this.distance,limit=this.job?this.job.distance-5:FINISH_DISTANCE;
-  const easing=this.job?Math.max(.24,Math.min(1,(limit-this.distance)/20)):1;
-  this.distance=Math.min(limit,this.distance+Math.max(0,dt)*speed*easing);return this.distance-before;
- }
- interact(dt,held,x,grounded){
-  if(!this.stopped||!held||Math.abs(x-this.job.lane*3)>.65||!grounded){this.progress=0;return false;}
-  this.progress+=Math.max(0,dt)/this.job.hold;
-  if(this.progress<1)return false;
-  this.completed++;this.progress=0;return true;
- }
+ reset(){this.distance=0;this.completed=0;this.progress=0;this.phase='run';}
+ get floor(){return FLOORS[Math.min(this.completed,FLOORS.length-1)];}
+ get floorStart(){return FLOORS.slice(0,this.completed).reduce((sum,f)=>sum+f.length,0);}
+ get floorEnd(){return this.floorStart+this.floor.length;}
+ get remaining(){return Math.max(0,this.floorEnd-this.distance);}
+ get lastFloor(){return this.completed===FLOORS.length-1;}
+ get job(){return null;}
+ get stopped(){return this.phase==='run'&&this.remaining<=5.001;}
+ get finished(){return this.phase==='escaped';}
+ travel(dt,speed){if(this.phase!=='run')return 0;const before=this.distance,limit=this.floorEnd-5;const easing=Math.max(.24,Math.min(1,(limit-this.distance)/20));this.distance=Math.min(limit,this.distance+Math.max(0,dt)*Math.max(0,speed)*easing);return this.distance-before;}
+ enter(x,grounded){if(!this.stopped||Math.abs(x)>.65||!grounded)return false;this.phase='boarding';return true;}
+ completeFloor(){if(this.phase!=='boarding')return false;this.distance=this.floorEnd;this.phase=this.lastFloor?'escaped':'upgrade';return true;}
+ descend(){if(this.phase!=='upgrade')return false;this.completed++;this.phase='run';return true;}
+ interact(){return false;}
 }

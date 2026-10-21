@@ -1,13 +1,13 @@
 # After Hours — Escape 9 to 5
 
-A Three.js office heist through a 1,200m glass atrium at sunset. The route has three physical objective stations: reception access card (240m), backup server (610m), and elevator fuse box (1,010m). The elevator unlocks after all three jobs. There is no countdown.
+Escape from the top office floor to the street in five complete levels. Each floor lasts 900–1,100 metres, with a faster pace and denser obstacle patterns on the next floor. There is no timer and no mid-floor upgrade interruption.
 
-A/D or left/right arrows change lanes. Space/W/up jumps; S/down slides. At a station, move to its marked lane and hold E (or the contextual button). The runner stops for the interaction. Releasing early resets progress. Coffee absorbs one hit; optional files earn points. Obstacles always leave a clear lane. Three unprotected hits end the run.
+At the end of a floor, move to the centre lane and press E or tap **Enter lift**. The runner walks into the lift, the doors close, and you choose one upgrade. The lift descends one floor before the run resumes. Four lift breaks separate the five floors; the ground floor ends at the street exit instead of another upgrade. Upgrades persist for the rest of the escape.
 
-Phones support swipes plus essential move/jump/slide controls. A single Menu button pauses and contains sound and graphics switches, continue and home. There are no repeated message pop-ups, score-copy actions or stapler/fire controls.
+A/D or left/right arrows change lanes. Space/W/up jumps; S/down slides. Phones support swipes and move/jump/slide buttons. Coffee absorbs a collision and files earn points. Three unprotected hits end the run; a second-wind upgrade can add a life. Every obstacle row has a route without a solid blocker, though it may require jumping or sliding.
 
-The office uses locally hosted Three.js, procedural textures, a dusk sky shader, continuous window/roof framing, floor reflections, instanced scenery and a character with a visible briefcase inventory and coffee shield. Graphics can be reduced in Menu. Reduced motion suppresses incidental effects; gameplay continues.
+The existing Three.js office, reflections, skyline and locally hosted assets are retained. The city rises relative to the runner as the lift descends. Pause works during the run and lift animations; focus loss pauses automatically. Graphics can be reduced in the pause menu.
 
 Serve the arcade root and open `Day33/escape_9to5_tasks.html`. No build, API key or paid model is needed.
 
-Checks: `node check-after-hours.mjs` from this repository. The arcade workspace also has `Day33/check-office-games.mjs` for cross-game regressions. Focused checks cover the full objective/extraction flow, alignment/hold rules, no time-out, fair routes, pickup/damage behavior, pause/replay, portrait framing and WebGL context loss. These checks do not certify physical-device FPS or subjective enjoyment.
+Run `node Day33/check-after-hours.mjs` for renderer-independent checks of all five floors, exactly four upgrades, centre-lane lift entry, descent, final escape, difficulty progression, pause/replay, collision, bounded hazards, fair routes, mobile camera framing and context loss. These checks do not certify physical-device performance or subjective enjoyment.
